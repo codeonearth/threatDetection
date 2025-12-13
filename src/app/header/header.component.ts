@@ -1,6 +1,9 @@
-import { Component, OnInit, AfterViewInit, Renderer2 } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ImageLoaderService } from '../image-loader.service';
+import {
+  Component,
+  AfterViewInit,
+  OnDestroy,
+  Renderer2
+} from '@angular/core';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import Typed from 'typed.js';
@@ -11,77 +14,219 @@ import { Router } from '@angular/router';
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css']
 })
-
-export class HeaderComponent implements OnInit, AfterViewInit {
-  loginForm: FormGroup;
-  logoUrl: string = '';
-
+export class HeaderComponent implements AfterViewInit, OnDestroy {
   private readonly RESPONSIVE_WIDTH = 1024;
   isHeaderCollapsed = window.innerWidth < this.RESPONSIVE_WIDTH;
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private router: Router,
-    private imageLoader: ImageLoaderService,
-    private renderer: Renderer2
-  ) {
-    this.loginForm = this.formBuilder.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
+  // store references so we can remove listeners later
+  private hoverEnterHandlers: Array<() => void> = [];
+  private hoverLeaveHandlers: Array<() => void> = [];
+
+  constructor(private renderer: Renderer2, private router: Router) {
+    gsap.registerPlugin(ScrollTrigger);
   }
 
-  ngOnInit(): void {
-    this.loadLogo();
-  }
+  // -----------------------
+  // Routing helpers
+  // -----------------------
   goToHome() {
     this.router.navigate(['']);
   }
   goToBlog() {
     this.router.navigate(['/blog']);
   }
-goToServices() {
+  goToAboutUs() {
+    this.router.navigate(['/about-us']);
+  }
+  goToOurTeam() {
+    this.router.navigate(['/our-team']);
+  }
+  goToServices() {
     this.router.navigate(['/services']);
   }
-  ngAfterViewInit(): void {
-    this.initializeLandingPage();
-    this.applyStoredTheme();
+  goToAiMlDetection() {
+    this.router.navigate(['/ai-ml-detection']);
+  }
+  goToAutomatedResponse() {
+    this.router.navigate(['/automated-response']);
+  }
+  goToDashboardSystem() {
+    this.router.navigate(['/dashboard-system']);
+  }
+   goToMitreAttack() {
+    this.router.navigate(['/mitre-attck']);
+  }
+  goToRealTimeMonitoring() {
+    this.router.navigate(['/real-time-monitoring']);
+  }
+  goToUeba() {
+    this.router.navigate(['/ueba']);
   }
 
-  // ✅ Load Logo Image
-  loadLogo() {
-    const logoUrl = 'https://avatars.githubusercontent.com/u/124091983';
-    this.imageLoader.loadImage(logoUrl).subscribe((blob: Blob) => {
-      this.logoUrl = URL.createObjectURL(blob);
+  // -----------------------
+  // Lifecycle
+  // -----------------------
+  ngAfterViewInit(): void {
+    this.initTheme();
+    this.responsiveSetup();
+    this.initializeGSAP();
+    this.initializeTyped();
+
+    // react to resize to switch behavior
+    window.addEventListener('resize', this.onResize);
+  }
+
+  ngOnDestroy(): void {
+    // clean up hover listeners
+    this.hoverEnterHandlers.forEach(h => h());
+    this.hoverLeaveHandlers.forEach(h => h());
+
+    window.removeEventListener('resize', this.onResize);
+  }
+
+  // -----------------------
+  // Resize handler
+  // -----------------------
+  private onResize = () => {
+    this.isHeaderCollapsed = window.innerWidth < this.RESPONSIVE_WIDTH;
+    this.responsiveSetup();
+  };
+
+  // -----------------------
+  // Responsive behavior setup
+  // -----------------------
+  responsiveSetup(): void {
+    // Ensure dropdowns are closed on width change
+    this.closeDropdown(0);
+    this.closeDropdown(1);
+
+    // Remove previously attached hover listeners
+    this.removeHoverListeners();
+
+    if (window.innerWidth > this.RESPONSIVE_WIDTH) {
+      // Desktop: enable hover behavior for both toggles
+      this.addHoverBehavior(0);
+      this.addHoverBehavior(1);
+    }
+    // Mobile: clicks already wired in template to onToggleClick
+  }
+
+  // Add hover listeners for a dropdown index (0 or 1)
+  private addHoverBehavior(index: number): void {
+    const toggle = document.getElementById(`nav-dropdown-toggle-${index}`);
+    const list = document.getElementById(`nav-dropdown-list-${index}`);
+
+    if (!toggle || !list) return;
+
+    // mouseenter -> open and close other dropdown
+    const enter = () => {
+      this.openDropdown(index);
+    };
+
+    // mouseleave -> schedule close (allow moving into dropdown)
+    let leaveTimeout: any = null;
+    const leave = () => {
+      // if cursor leaves toggle, wait briefly in case it enters the list
+      leaveTimeout = setTimeout(() => {
+        if (!list.matches(':hover') && !toggle.matches(':hover')) {
+          this.closeDropdown(index);
+        }
+      }, 120);
+    };
+
+    // Also when leaving the list itself, close after short delay
+    const listLeave = () => {
+      setTimeout(() => {
+        if (!list.matches(':hover') && !toggle.matches(':hover')) {
+          this.closeDropdown(index);
+        }
+      }, 120);
+    };
+
+    toggle.addEventListener('mouseenter', enter);
+    toggle.addEventListener('mouseleave', leave);
+    list.addEventListener('mouseleave', listLeave);
+
+    // Save cleanup functions
+    this.hoverEnterHandlers.push(() => toggle.removeEventListener('mouseenter', enter));
+    this.hoverLeaveHandlers.push(() => {
+      toggle.removeEventListener('mouseleave', leave);
+      list.removeEventListener('mouseleave', listLeave);
+      clearTimeout(leaveTimeout);
     });
   }
 
-  // ✅ Form Submit Handler
-  onSubmit(): void {
-    if (this.loginForm.valid) {
-      console.log('Login form submitted');
-    }
+  private removeHoverListeners(): void {
+    // run each stored cleanup
+    this.hoverEnterHandlers.forEach(fn => fn());
+    this.hoverLeaveHandlers.forEach(fn => fn());
+    this.hoverEnterHandlers = [];
+    this.hoverLeaveHandlers = [];
   }
 
-  // ✅ Toggle Dark / Light Mode
-  toggleMode(): void {
-    const toggleIcon = document.querySelector('#toggle-mode-icon');
-    const html = document.documentElement;
+  // -----------------------
+  // Click handler (both mobile & desktop clicks)
+  // -----------------------
+  // This is wired from template: (click)="onToggleClick($event, 0)"
+  onToggleClick(event: Event, index: number): void {
+    event.stopPropagation();
+    // On desktop we still allow click toggle, but hover takes precedence.
+    // Toggle the requested dropdown and close the other.
+    const list = document.getElementById(`nav-dropdown-list-${index}`);
+    if (!list) return;
 
-    html.classList.toggle('tw-dark');
-
-    if (html.classList.contains('tw-dark')) {
-      toggleIcon?.classList.remove('bi-sun');
-      toggleIcon?.classList.add('bi-moon');
-      localStorage.setItem('color-mode', 'dark');
+    const isOpen = list.getAttribute('data-open') === 'true';
+    if (isOpen) {
+      this.closeDropdown(index);
     } else {
-      toggleIcon?.classList.add('bi-sun');
-      toggleIcon?.classList.remove('bi-moon');
-      localStorage.setItem('color-mode', 'light');
+      this.openDropdown(index);
     }
   }
 
-  // ✅ Toggle Header Collapse
+  // -----------------------
+  // Open/Close helpers (mutually exclusive)
+  // -----------------------
+  private openDropdown(index: number): void {
+    // close the other dropdown (0<->1)
+    const other = index === 0 ? 1 : 0;
+    this.closeDropdown(other);
+
+    const dropdown = document.getElementById(`nav-dropdown-list-${index}`);
+    const toggle = document.getElementById(`nav-dropdown-toggle-${index}`);
+    if (!dropdown || !toggle) return;
+
+    dropdown.setAttribute('data-open', 'true');
+    dropdown.setAttribute('aria-hidden', 'false');
+    this.renderer.removeClass(dropdown, 'tw-scale-0');
+    this.renderer.removeClass(dropdown, 'tw-opacity-0');
+    this.renderer.addClass(dropdown, 'tw-scale-100');
+    this.renderer.addClass(dropdown, 'tw-opacity-100');
+    this.renderer.setStyle(dropdown, 'maxHeight', index === 0 ? '450px' : '200px');
+    this.renderer.setStyle(dropdown, 'width', '90%');
+
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+
+  private closeDropdown(index: number): void {
+    const dropdown = document.getElementById(`nav-dropdown-list-${index}`);
+    const toggle = document.getElementById(`nav-dropdown-toggle-${index}`);
+    if (!dropdown) return;
+
+    dropdown.setAttribute('data-open', 'false');
+    dropdown.setAttribute('aria-hidden', 'true');
+    this.renderer.removeClass(dropdown, 'tw-scale-100');
+    this.renderer.removeClass(dropdown, 'tw-opacity-100');
+    this.renderer.addClass(dropdown, 'tw-scale-0');
+    this.renderer.addClass(dropdown, 'tw-opacity-0');
+    this.renderer.setStyle(dropdown, 'maxHeight', '0px');
+    this.renderer.setStyle(dropdown, 'width', '0px');
+
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  // -----------------------
+  // Header collapse (mobile)
+  // -----------------------
   toggleHeader(): void {
     const collapseBtn = document.getElementById('collapse-btn');
     const collapseHeaderItems = document.getElementById('collapsed-header-items');
@@ -103,27 +248,58 @@ goToServices() {
     }
   }
 
-  // ✅ Initialize animations, typing effect, and responsive logic
-  private initializeLandingPage(): void {
-    // ---- Typed.js effect ----
-    const typedElement = document.querySelector('#prompts-sample');
-    if (typedElement) {
-      new Typed('#prompts-sample', {
-        strings: [
-          "How to solve a rubik's cube? Step by step guide",
-          "What's Pixa Playground?",
-          'How to build an AI SaaS App?',
-          'How to integrate Pixa API?'
-        ],
-        typeSpeed: 80,
-        smartBackspace: true,
-        loop: true,
-        backDelay: 2000
-      });
-    }
+  // -----------------------
+  // Theme toggle
+  // -----------------------
+  toggleMode(): void {
+    const toggleIcon = document.querySelector('#toggle-mode-icon');
+    const html = document.documentElement;
 
-    // ---- GSAP Animations ----
-    gsap.registerPlugin(ScrollTrigger);
+    html.classList.toggle('tw-dark');
+
+    if (html.classList.contains('tw-dark')) {
+      toggleIcon?.classList.remove('bi-sun');
+      toggleIcon?.classList.add('bi-moon');
+      localStorage.setItem('color-mode', 'dark');
+    } else {
+      toggleIcon?.classList.add('bi-sun');
+      toggleIcon?.classList.remove('bi-moon');
+      localStorage.setItem('color-mode', 'light');
+    }
+  }
+
+  initTheme(): void {
+    const saved = localStorage.getItem('color-mode');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (saved === 'dark' || (!saved && prefersDark)) {
+      document.documentElement.classList.add('tw-dark');
+    }
+    this.updateToggleModeBtn();
+  }
+
+  updateToggleModeBtn(): void {
+    const toggleIcon = document.querySelector('#toggle-mode-icon') as HTMLElement;
+    if (!toggleIcon) return;
+
+    if (document.documentElement.classList.contains('tw-dark')) {
+      toggleIcon.classList.remove('bi-sun');
+      toggleIcon.classList.add('bi-moon');
+      localStorage.setItem('color-mode', 'dark');
+    } else {
+      toggleIcon.classList.add('bi-sun');
+      toggleIcon.classList.remove('bi-moon');
+      localStorage.setItem('color-mode', 'light');
+    }
+  }
+
+  // -----------------------
+  // GSAP / Typed initializers (kept minimal)
+  // -----------------------
+  initializeGSAP(): void {
+    // minimal example preserved from your original
+    gsap.to('.reveal-up', { opacity: 0, y: '100%' });
+
     gsap.to('#dashboard', {
       scale: 1,
       translateY: 0,
@@ -135,84 +311,25 @@ goToServices() {
         scrub: 1
       }
     });
+  }
 
-    // ---- FAQ Accordion ----
-    const faqAccordion = document.querySelectorAll('.faq-accordion');
-    faqAccordion.forEach(btn => {
-      btn.addEventListener('click', () => {
-        btn.classList.toggle('active');
-        const content = (btn as HTMLElement).nextElementSibling as HTMLElement | null;
-        const icon = btn.querySelector('.bi-plus') as HTMLElement | null;
-        if (!content || !icon) return;
-
-        if (content.style.maxHeight === '240px') {
-          content.style.maxHeight = '0px';
-          content.style.padding = '0px 18px';
-          icon.style.transform = 'rotate(0deg)';
-        } else {
-          content.style.maxHeight = '240px';
-          content.style.padding = '20px 18px';
-          icon.style.transform = 'rotate(45deg)';
-        }
+  initializeTyped(): void {
+    try {
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      new Typed('#prompts-sample', {
+        strings: [
+          "How to solve a rubik's cube? Step by step guide",
+          "What's Pixa playground?",
+          "How to build an AI SaaS App?",
+          "How to integrate Pixa API?"
+        ],
+        typeSpeed: 80,
+        smartBackspace: true,
+        loop: true,
+        backDelay: 2000
       });
-    });
-
-    // ---- Responsive Behavior ----
-    window.addEventListener('resize', () => {
-      if (!this.isHeaderCollapsed) this.toggleHeader();
-    });
-  }
-
-  // ✅ Apply theme from localStorage on page load
-  private applyStoredTheme(): void {
-    const html = document.documentElement;
-    const savedTheme = localStorage.getItem('color-mode');
-    if (
-      savedTheme === 'dark' ||
-      (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    ) {
-      html.classList.add('tw-dark');
-    } else {
-      html.classList.remove('tw-dark');
-    }
-
-    const toggleIcon = document.querySelector('#toggle-mode-icon');
-    if (html.classList.contains('tw-dark')) {
-      toggleIcon?.classList.remove('bi-sun');
-      toggleIcon?.classList.add('bi-moon');
-    } else {
-      toggleIcon?.classList.add('bi-sun');
-      toggleIcon?.classList.remove('bi-moon');
+    } catch (e) {
+      // ignore if element not present
     }
   }
-
-  
-  toggleDropdown(index: number): void {
-  const dropdownList = document.getElementById(`nav-dropdown-list-${index}`);
-  const dropdownToggle = document.getElementById(`nav-dropdown-toggle-${index}`);
-  if (!dropdownList || !dropdownToggle) return;
-
-  const isOpen = dropdownList.getAttribute('data-open') === 'true';
-
-  if (isOpen) {
-    // Hide dropdown
-    dropdownList.setAttribute('data-open', 'false');
-    this.renderer.removeClass(dropdownList, 'tw-scale-100');
-    this.renderer.removeClass(dropdownList, 'tw-opacity-100');
-    this.renderer.addClass(dropdownList, 'tw-scale-0');
-    this.renderer.addClass(dropdownList, 'tw-opacity-0');
-    this.renderer.setStyle(dropdownList, 'maxHeight', '0px');
-    this.renderer.setStyle(dropdownList, 'width', '0px');
-  } else {
-    // Show dropdown
-    dropdownList.setAttribute('data-open', 'true');
-    this.renderer.removeClass(dropdownList, 'tw-scale-0');
-    this.renderer.removeClass(dropdownList, 'tw-opacity-0');
-    this.renderer.addClass(dropdownList, 'tw-scale-100');
-    this.renderer.addClass(dropdownList, 'tw-opacity-100');
-    this.renderer.setStyle(dropdownList, 'maxHeight', '450px');
-    this.renderer.setStyle(dropdownList, 'width', '90%');
-  }
-}
-
 }

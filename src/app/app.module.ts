@@ -14,6 +14,14 @@ import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { ServicesComponent } from './services/services.component';
 import { BlogComponent } from './blog/blog.component';
+import { AboutUsComponent } from './company/about-us/about-us.component';
+import { OurTeamComponent } from './company/our-team/our-team.component';
+import { RealTimeMonitoringComponent } from './Features/real-time-monitoring/real-time-monitoring.component';
+import { AiMlDetectionComponent } from './Features/ai-ml-detection/ai-ml-detection.component';
+import { UEBAComponent } from './Features/ueba/ueba.component';
+import { AutomatedResponseComponent } from './Features/automated-response/automated-response.component';
+import { MitreAttackComponent } from './Features/mitre-attack/mitre-attack.component';
+import { DashboardSystemComponent } from './Features/dashboard-system/dashboard-system.component';
 @NgModule({
   declarations: [
     AppComponent,
@@ -21,7 +29,15 @@ import { BlogComponent } from './blog/blog.component';
     HeaderComponent,
     FooterComponent,
     ServicesComponent,
-    BlogComponent
+    BlogComponent,
+    AboutUsComponent,
+    OurTeamComponent,
+    RealTimeMonitoringComponent,
+    AiMlDetectionComponent,
+    UEBAComponent,
+    AutomatedResponseComponent,
+    MitreAttackComponent,
+    DashboardSystemComponent
   ],
   imports: [
     BrowserModule,

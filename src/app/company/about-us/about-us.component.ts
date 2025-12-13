@@ -2,14 +2,13 @@ import { Component, AfterViewInit, Renderer2, HostListener } from '@angular/core
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 
-
 @Component({
-  selector: 'app-blog',
-  templateUrl: './blog.component.html',
-  styleUrls: ['./blog.component.css']
+  selector: 'app-about-us',
+  templateUrl: './about-us.component.html',
+  styleUrls: ['./about-us.component.css']
 })
 
-// export class BlogComponent implements AfterViewInit {
+// export class AboutUsComponent implements AfterViewInit {
 
 //   private readonly RESPONSIVE_WIDTH = 1024;
 //   isHeaderCollapsed = window.innerWidth < this.RESPONSIVE_WIDTH;
@@ -172,7 +171,9 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 //   }
 
 // }
-export class BlogComponent implements AfterViewInit {
+
+
+export class AboutUsComponent implements AfterViewInit {
 
   RESPONSIVE_WIDTH = 1024;
   isHeaderCollapsed = window.innerWidth < this.RESPONSIVE_WIDTH;

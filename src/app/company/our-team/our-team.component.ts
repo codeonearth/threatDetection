@@ -1,15 +1,16 @@
-import { Component, AfterViewInit, Renderer2, HostListener } from '@angular/core';
+import { Component, AfterViewInit, Renderer2, OnDestroy, HostListener } from '@angular/core';
+import { Router } from '@angular/router';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
-
+import Typed from 'typed.js';
 
 @Component({
-  selector: 'app-blog',
-  templateUrl: './blog.component.html',
-  styleUrls: ['./blog.component.css']
+  selector: 'app-our-team',
+  templateUrl: './our-team.component.html',
+  styleUrls: ['./our-team.component.css']
 })
 
-// export class BlogComponent implements AfterViewInit {
+// export class OurTeamComponent implements AfterViewInit {
 
 //   private readonly RESPONSIVE_WIDTH = 1024;
 //   isHeaderCollapsed = window.innerWidth < this.RESPONSIVE_WIDTH;
@@ -172,7 +173,9 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 //   }
 
 // }
-export class BlogComponent implements AfterViewInit {
+
+
+export class OurTeamComponent implements AfterViewInit {
 
   RESPONSIVE_WIDTH = 1024;
   isHeaderCollapsed = window.innerWidth < this.RESPONSIVE_WIDTH;
